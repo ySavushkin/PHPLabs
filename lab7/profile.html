@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Особистий кабінет</title>
+</head>
+<body>
+    <div class="container">
+        <h2>Вітаємо, <span id="username"></span>!</h2>
+        <form id="profileForm">
+            <label for="newUsername">Новий нікнейм:</label>
+            <input type="text" id="newUsername" name="newUsername" placeholder="Введіть новий нікнейм">
+            
+            <label for="newEmail">Нова електронна пошта:</label>
+            <input type="email" id="newEmail" name="newEmail" placeholder="Введіть нову електронну пошту">
+            
+            <button type="submit" class="btn">Оновити дані</button>
+        </form>
+        
+        <a href="index.html" class="btn">Вийти</a>
+        
+        <div id="message"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#username').text(localStorage.getItem('username'));
+
+            $('#profileForm').submit(function(e) {
+                e.preventDefault();
+
+                const newUsername = $('#newUsername').val();
+                const newEmail = $('#newEmail').val();
+
+                $.ajax({
+                    url: 'update_profile.php',
+                    method: 'POST',
+                    data: {
+                        username: newUsername,
+                        email: newEmail
+                    },
+                    success: function(response) {
+                        if (response === 'success') {
+                            if (newUsername) {
+                                localStorage.setItem('username', newUsername);
+                                $('#username').text(newUsername);
+                            }
+                            $('#message').text('Дані успішно оновлено!');
+                        } else {
+                            $('#message').text(response);
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
