@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Форма замовлення</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Оформлення замовлення</h1>
+    
+    <form id="order-form">
+        <label for="order-number">Номер замовлення:</label>
+        <input type="text" id="order-number" name="order-number" required><br><br>
+
+        <label for="weight">Вага (кг):</label>
+        <input type="number" id="weight" name="weight" required><br><br>
+
+        <label for="city">Місто:</label>
+        <select id="city" name="city" required>
+            <option value="">Виберіть місто</option>
+        </select><br><br>
+
+        <label for="delivery-option">Вибір доставки:</label>
+        <select id="delivery-option" name="delivery-option" required>
+            <option value="">Виберіть опцію</option>
+            <option value="branch">Відділення</option>
+            <option value="post-office">Поштомат</option>
+        </select><br><br>
+
+        <label for="branch">Відділення:</label>
+        <select id="branch" name="branch" required>
+            <option value="">Виберіть відділення</option>
+        </select><br><br>
+
+        <label for="post-office">Поштомат:</label>
+        <select id="post-office" name="post-office" required>
+            <option value="">Виберіть поштомат</option>
+        </select><br><br>
+
+        <button type="submit">Оформити замовлення</button>
+    </form>
+
+    <script>
+        $(document).ready(function() {
+
+    $.ajax({
+        url: 'get_cities.php',
+        type: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                $('#city').empty().append('<option value="">Виберіть місто</option>');
+                response.data.forEach(function(city) {
+                    $('#city').append('<option value="' + city.Ref + '">' + city.Name + '</option>');
+                });
+            } else {
+                alert('Не вдалося завантажити міста');
+            }
+        },
+        error: function() {
+            alert('Помилка при отриманні міст');
+        }
+    });
+
+    $('#city').change(function() {
+        const cityRef = $(this).val();
+        if (cityRef) {
+            $.ajax({
+                url: 'get_branches.php',
+                type: 'GET',
+                data: { cityRef: cityRef },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        const branches = [];
+                        const postOffices = [];
+                        response.data.forEach(function(item) {
+                            if (item.includes("Поштомат")) {
+                                postOffices.push(item);
+                            } else {
+                                branches.push(item);
+                            }
+                        });
+                        window.branchesData = branches;
+                        window.postOfficesData = postOffices;
+                        $('#branch').empty().append('<option value="">Виберіть відділення</option>');
+                        $('#post-office').empty().append('<option value="">Виберіть поштомат</option>');
+                    } else {
+                        alert('Не вдалося завантажити відділення і поштомати');
+                    }
+                },
+                error: function() {
+                    alert('Помилка при отриманні відділень та поштоматів');
+                }
+            });
+        } else {
+            $('#branch').empty().append('<option value="">Виберіть відділення</option>');
+            $('#post-office').empty().append('<option value="">Виберіть поштомат</option>');
+        }
+    });
+
+    $('#delivery-option').change(function() {
+        const deliveryOption = $(this).val();
+        if (deliveryOption === 'branch') {
+            $('#branch').show();
+            $('#post-office').hide();
+
+            $('#branch').prop('required', true);
+            $('#post-office').prop('required', false);
+
+            if (window.branchesData) {
+                $('#branch').empty().append('<option value="">Виберіть відділення</option>');
+                window.branchesData.forEach(function(branch) {
+                    $('#branch').append('<option value="' + branch + '">' + branch + '</option>');
+                });
+            }
+        } else if (deliveryOption === 'post-office') {
+            $('#post-office').show();
+            $('#branch').hide();
+
+            $('#post-office').prop('required', true);
+            $('#branch').prop('required', false);
+
+            if (window.postOfficesData) {
+                $('#post-office').empty().append('<option value="">Виберіть поштомат</option>');
+                window.postOfficesData.forEach(function(postOffice) {
+                    $('#post-office').append('<option value="' + postOffice + '">' + postOffice + '</option>');
+                });
+            }
+        } else {
+            $('#branch').hide();
+            $('#post-office').hide();
+
+            $('#branch').prop('required', false);
+            $('#post-office').prop('required', false);
+        }
+    });
+
+    $('#weight').change(function() {
+        const weight = parseFloat($(this).val());
+
+        if (weight > 10) {
+            $('#post-office').prop('disabled', true);
+            $('#post-office').val('');
+            $('#delivery-option').val('branch');
+            $('#delivery-option').trigger('change');
+        } else if(weight>0){
+            $('#post-office').prop('disabled', false);
+            $('#branch').prop('disabled', false);
+        } else{
+            $('#post-office').prop('disabled', true);
+            $('#branch').prop('disabled', true);
+        }
+    });
+
+    $('#order-form').submit(function(event) {
+        event.preventDefault();
+        const formData = $(this).serialize();
+
+        $.ajax({
+            url: 'save_order.php',
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    alert('Замовлення оформлено!');
+                } else {
+                    alert('Помилка оформлення замовлення: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('Помилка при обробці замовлення');
+            }
+        });
+    });
+});
+
+    </script>
+</body>
+</html>
